@@ -1,0 +1,22 @@
+
+sequenceDiagram
+  participant 利用者 as 利用者（顧客）
+  participant Pages as Cloudflare Pages（購入画面）
+  participant 決済 as 外部決済サービス（例: PayPay）
+  participant Worker as Cloudflare Workers（Webhook受信/API）
+  participant Supabase as Supabase（DB/認証/Realtime）
+
+  利用者->>Pages: 購入手続きを実行（商品選択・支払い開始）
+  Pages->>決済: 決済リクエスト（リダイレクトまたはAPI呼び出し）
+  決済-->>利用者: 支払い画面表示・支払い実行
+  決済->>Worker: Webhook通知（支払い完了イベント）  
+  Note right of Worker: 署名検証・冪等性チェック\n不正なら400/ログ記録
+  Worker->>Supabase: 支払い情報を保存/更新（支払いステータス、注文ID等）
+  Supabase-->>Worker: 保存結果（成功／失敗）
+  alt 保存成功
+    Supabase->>Pages: Realtime経由でステータス更新通知
+    Pages-->>利用者: 購入完了画面/ステータス反映
+  else 保存失敗
+    Worker->>ログ: エラー記録・再試行キュー（必要なら）
+    Pages-->>利用者: 一時的な遅延表示（ポーリングや通知）
+  end
