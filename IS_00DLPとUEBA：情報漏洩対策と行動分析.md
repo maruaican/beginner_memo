@@ -1,4 +1,6 @@
-はい、応用情報技術者試験の対策として、DLP（Data Loss Prevention）及びUEBA（User and Entity Behavior Analytics）について解説します。IPAの用語と表記に準拠し、体系的に説明します。
+
+
+# DLP（Data Loss Prevention）及びUEBA（User and Entity Behavior Analytics）
 
 １．全体像（テキスト図）
 
