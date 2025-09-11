@@ -1,7 +1,5 @@
-# 制約
-
+## 制約
 ---
-
 **【問1】**
 リレーショナルデータベースにおいて、テーブル内の各行を重複なく、一意に識別するための「鍵」となる列または列の組み合わせに設定する整合性制約は何ですか。また、その制約がデータベース全体において果たす根源的な役割を説明してください。
 
@@ -22,7 +20,7 @@
 ```sql
 CREATE TABLE 従業員 (
     従業員ID   INT NOT NULL,
-    employee_name VARCHAR(100),
+    従業員名 VARCHAR(100),
     部署ID INT,
     CONSTRAINT pk_従業員 PRIMARY KEY (従業員ID)
 );
@@ -37,8 +35,8 @@ CREATE TABLE 従業員 (
 | PRIMARY KEY  | `CONSTRAINT pk_従業員 PRIMARY KEY (従業員ID)`           | 主キー制約     |
 | FOREIGN KEY  | `CONSTRAINT fk_emp_dept FOREIGN KEY (部署ID)`          | 外部キー制約   |
 | UNIQUE       | `CONSTRAINT uq_email UNIQUE (email)`                          | 一意性制約     |
-| CHECK        | `CONSTRAINT chk_salary CHECK (salary >= 0)`                   | 条件制約       |
-| NOT NULL     | ※列定義内で直接指定<br>`employee_name VARCHAR(100) NOT NULL` | NULL禁止制約   |
+| CHECK        | `CONSTRAINT chk_給料 CHECK (給料 >= 0)`                   | 条件制約       |
+| NOT NULL     | ※列定義内で直接指定<br>`従業員名 VARCHAR(100) NOT NULL` | NULL禁止制約   |
 
 
 
@@ -76,7 +74,7 @@ INSERT INTO 従業員 VALUES (101, '鈴木 次郎', 20);
 CREATE TABLE 注文 (
     注文ID      INT PRIMARY KEY,
     顧客ID   INT,
-    order_date    DATE,
+    注文日    DATE,
 
     -- ↓ここからが制約定義
     CONSTRAINT fk_注文_顧客
@@ -117,14 +115,14 @@ SQL構文が一体化しているため混同しやすいですが、この役�
 -- 親テーブル（参照される側）
 CREATE TABLE 顧客 (
     顧客ID   INT PRIMARY KEY,
-    customer_name VARCHAR(100)
+    顧客名 VARCHAR(100)
 );
 
 -- 子テーブル（参照する側）
 CREATE TABLE 注文 (
     注文ID      INT PRIMARY KEY,
     顧客ID   INT,
-    order_date    DATE,
+    注文日    DATE,
     CONSTRAINT fk_注文_顧客
         FOREIGN KEY (顧客ID) REFERENCES 顧客(顧客ID)
 );
@@ -161,8 +159,8 @@ INSERT INTO 注文 VALUES (102, 999, '2023-04-02');
 ```sql
 CREATE TABLE 従業員 (
     従業員ID   INT PRIMARY KEY,
-    age           INT,
-    CONSTRAINT chk_従業員_age CHECK (age >= 0 AND age <= 150)
+    年齢           INT,
+    CONSTRAINT chk_従業員_年齢 CHECK (年齢 >= 0 AND 年齢 <= 150)
 );
 ```
 
@@ -174,11 +172,11 @@ INSERT INTO 従業員 VALUES (101, 30); -- 条件を満たすので成功
 
 -- 制約違反のデータ挿入（負の値）
 INSERT INTO 従業員 VALUES (102, -5);
--- ERROR: new row for relation "従業員" violates check constraint "chk_従業員_age"
+-- ERROR: new row for relation "従業員" violates check constraint "chk_従業員_年齢"
 
 -- 制約違反のデータ挿入（上限超え）
 INSERT INTO 従業員 VALUES (103, 200);
--- ERROR: new row for relation "従業員" violates check constraint "chk_従業員_age"
+-- ERROR: new row for relation "従業員" violates check constraint "chk_従業員_年齢"
 ```
 
 ---
@@ -203,16 +201,16 @@ INSERT INTO 従業員 VALUES (103, 200);
 `従業員`テーブルと`branches`テーブルがあると仮定します。
 
 ```sql
-CREATE ASSERTION salary_check CHECK (
+CREATE ASSERTION 給料_check CHECK (
     NOT EXISTS (
         SELECT b.branch_id
         FROM branches b
         JOIN (
-            SELECT 部署ID, SUM(salary) AS total_salary
+            SELECT 部署ID, SUM(給料) AS total_給料
             FROM 従業員
             GROUP BY 部署ID
-        ) AS emp_salary ON b.branch_id = emp_salary.部署ID
-        WHERE emp_salary.total_salary > b.budget
+        ) AS emp_給料 ON b.branch_id = emp_給料.部署ID
+        WHERE emp_給料.total_給料 > b.budget
     )
 );
 ```
@@ -250,19 +248,19 @@ ASSERTIONは非常に強力ですが、パフォーマンスへの影響が大�
 
 *   **アプリケーション側のバリデーション:**
     特定の航空会社のカウンターで行う手荷物検査。
-    `if (age < 0) { throw new Exception("年齢が不正です"); }` のようなコードです。このアプリを使わない人には無意味です。
+    `if (年齢 < 0) { throw new Exception("年齢が不正です"); }` のようなコードです。このアプリを使わない人には無意味です。
 
 *   **データベースの整合性制約:**
     保安検査場で行う統一セキュリティチェック。
-    `CHECK (age >= 0)` というDBのルールです。誰が`INSERT`しようとしても、DBエンジン自身がこのルールを強制します。
+    `CHECK (年齢 >= 0)` というDBのルールです。誰が`INSERT`しようとしても、DBエンジン自身がこのルールを強制します。
 
 **【SQLでの実証】**
 `CHECK`制約が設定されたテーブルに対して、PythonやJavaのアプリからだけでなく、DB管理ツールから直接SQLを実行しても、ルール違反は同様にブロックされます。
 
 ```sql
 -- どんなクライアントから実行しても、このSQLはエラーになる
-UPDATE 従業員 SET age = -1 WHERE 従業員ID = 101;
--- ERROR: new row for relation "従業員" violates check constraint "chk_従業員_age"
+UPDATE 従業員 SET 年齢 = -1 WHERE 従業員ID = 101;
+-- ERROR: new row for relation "従業員" violates check constraint "chk_従業員_年齢"
 ```
 これにより、アプリケーションのバグや予期せぬ操作によってデータが矛盾した状態に陥ることを「最後の砦」として防ぎます。
 
@@ -283,21 +281,21 @@ UPDATE 従業員 SET age = -1 WHERE 従業員ID = 101;
 もし参照先の列に重複した値が存在すると、外部キーの値がどの行を指しているのか一意に定まらず、関係が曖昧になってしまいます。DBMSは、このような曖昧な関係の定義を許可しません。
 
 **【SQLでのエラー例】**
-`商品`テーブルの`product_code`に**一意性制約がない場合、それを参照する外部キーは作成できません**。
+`商品`テーブルの`商品_code`に**一意性制約がない場合、それを参照する外部キーは作成できません**。
 
 ```sql
 CREATE TABLE 商品 (
-    product_code VARCHAR(10), -- PRIMARY KEYもUNIQUE制約もない
-    product_name VARCHAR(100)
+    商品_code VARCHAR(10), -- PRIMARY KEYもUNIQUE制約もない
+    商品_name VARCHAR(100)
 );
 INSERT INTO 商品 VALUES ('A-001', '商品X');
 INSERT INTO 商品 VALUES ('A-001', '商品Y'); -- 重複データを許してしまう
 
 CREATE TABLE 注文明細 (
     detail_id INT PRIMARY KEY,
-    product_code VARCHAR(10),
+    商品_code VARCHAR(10),
     -- ↓この制約を追加しようとするとエラーになる
-    FOREIGN KEY (product_code) REFERENCES 商品(product_code)
+    FOREIGN KEY (商品_code) REFERENCES 商品(商品_code)
 );
 -- ERROR: there is no unique constraint matching given keys for referenced table "商品"
 ```
@@ -365,20 +363,20 @@ DBMSは、「社員テーブルからまだ参照されているため、この�
 ```sql
 CREATE TABLE 従業員 (
     従業員ID   INT PRIMARY KEY, -- NOT NULLが暗黙的に適用される
-    employee_name VARCHAR(100),
-    manager_id    INT,             -- 上司ID (自分自身を参照する外部キー)
-    FOREIGN KEY (manager_id) REFERENCES 従業員(従業員ID)
+    従業員名 VARCHAR(100),
+    上司_id    INT,             -- 上司ID (自分自身を参照する外部キー)
+    FOREIGN KEY (上司_id) REFERENCES 従業員(従業員ID)
 );
 
 -- 主キーにNULLを挿入しようとする (エラー)
-INSERT INTO 従業員 (従業員ID, employee_name) VALUES (NULL, '名無し');
+INSERT INTO 従業員 (従業員ID, 従業員名) VALUES (NULL, '名無し');
 -- ERROR: null value in column "従業員ID" violates not-null constraint
 
 -- 外部キーにNULLを挿入する (成功)
 -- 例: 社長など、上司がいない社員
-INSERT INTO 従業員 VALUES (1, '山田 社長', NULL); -- manager_idがNULL
+INSERT INTO 従業員 VALUES (1, '山田 社長', NULL); -- 上司_idがNULL
 ```
-社長（`従業員ID`=1）は上司がいないため、`manager_id`は`NULL`になります。これは「参照先が存在しない」という正当な業務状態を表現しています。
+社長（`従業員ID`=1）は上司がいないため、`上司_id`は`NULL`になります。これは「参照先が存在しない」という正当な業務状態を表現しています。
 
 ---
 **【初心者が勘違いしやすい点】**
@@ -424,21 +422,21 @@ INSERT INTO 従業員 VALUES (1, '山田 社長', NULL); -- manager_idがNULL
 **【SQLで見るスコープの違い】**
 
 *   **`CHECK` 制約（単一行スコープ）:**
-    `商品`テーブルで「販売価格(`sale_price`)は仕入れ価格(`cost_price`)以上でなければならない」というルールを定義できます。これは1行の中で完結するチェックです。
+    `商品`テーブルで「販売価格(`sale_価格`)は仕入れ価格(`cost_価格`)以上でなければならない」というルールを定義できます。これは1行の中で完結するチェックです。
 
     ```sql
     CREATE TABLE 商品 (
         商品ID INT PRIMARY KEY,
-        cost_price INT,
-        sale_price INT,
-        CONSTRAINT chk_price CHECK (sale_price >= cost_price)
+        cost_価格 INT,
+        sale_価格 INT,
+        CONSTRAINT chk_価格 CHECK (sale_価格 >= cost_価格)
     );
-    -- これはエラーになる: sale_price < cost_price
+    -- これはエラーになる: sale_価格 < cost_価格
     INSERT INTO 商品 VALUES (1, 1000, 900);
     ```
 
 *   **`ASSERTION`（複数テーブルスコープ）:**
-    「全商品の`sale_price`の合計が、会社の総売上目標を超えてはならない」というルールは、`CHECK`では書けません。`商品`テーブルの全行と、別の`company_goals`テーブルの値を比較する必要があるからです。これは`ASSERTION`のスコープです。
+    「全商品の`sale_価格`の合計が、会社の総売上目標を超えてはならない」というルールは、`CHECK`では書けません。`商品`テーブルの全行と、別の`company_goals`テーブルの値を比較する必要があるからです。これは`ASSERTION`のスコープです。
 
 ---
 **【初心者が勘違いしやすい点】**
@@ -548,11 +546,11 @@ CREATE INDEX idx_注文_顧客ID ON 注文(顧客ID);
 
 **一般的な設計方針:**
 1.  **普遍的なルールは「データベース制約」で実装する。**
-    *   SQL例: `PRIMARY KEY`, `FOREIGN KEY`, `CHECK (price >= 0)`
+    *   SQL例: `PRIMARY KEY`, `FOREIGN KEY`, `CHECK (価格 >= 0)`
     *   これらはデータモデルの根幹であり、どのアプリから見ても変わらないルールです。
 
 2.  **複雑なビジネスルールは「アプリケーションロジック」で実装する。**
-    *   擬似コード例: `if (user.isGoldMember() && campaign.isActive()) { price *= 0.9; }`
+    *   擬似コード例: `if (user.isGoldMember() && campaign.isActive()) { 価格 *= 0.9; }`
     *   このようなルールは状況によって変化し、データベースの静的な制約で表現するのは困難です。
 
 データベースの制約を「憲法」、アプリケーションロジックを「法律」と考え、両者を適切に組み合わせることが堅牢なシステムを構築する鍵となります。
@@ -624,7 +622,7 @@ SELECT * FROM 注文明細 WHERE 注文ID = 101; -- 結果は0件
 ```sql
 CREATE TABLE 従業員 (
     従業員ID      INT PRIMARY KEY, -- 主キー (NULL不可、テーブルに1つ)
-    employee_name    VARCHAR(100),
+    従業員名    VARCHAR(100),
     email            VARCHAR(255) UNIQUE, -- 一意キー (NULL可、複数設定可)
     id_card_number   CHAR(10) UNIQUE     -- 一意キー (NULL可、複数設定可)
 );
@@ -659,22 +657,22 @@ INSERT INTO 従業員 VALUES (4, '高橋', 'sato@example.com', 'A004');
 `従業員`テーブルに負の年齢データが既に入っているとします。
 
 ```sql
-CREATE TABLE 従業員 (従業員ID INT, age INT);
+CREATE TABLE 従業員 (従業員ID INT, 年齢 INT);
 INSERT INTO 従業員 VALUES (1, 30);
 INSERT INTO 従業員 VALUES (2, -5); -- 違反データ
 
 -- この状態でCHECK制約を追加しようとする
-ALTER TABLE 従業員 ADD CONSTRAINT chk_age CHECK (age >= 0);
--- ERROR: check constraint "chk_age" is violated by some row
+ALTER TABLE 従業員 ADD CONSTRAINT chk_年齢 CHECK (年齢 >= 0);
+-- ERROR: check constraint "chk_年齢" is violated by some row
 ```
 **【正しい手順】**
 
 ```sql
 -- 1. 違反データを修正する
-UPDATE 従業員 SET age = 25 WHERE age < 0;
+UPDATE 従業員 SET 年齢 = 25 WHERE 年齢 < 0;
 
 -- 2. 再度、制約を追加する（今度は成功する）
-ALTER TABLE 従業員 ADD CONSTRAINT chk_age CHECK (age >= 0);
+ALTER TABLE 従業員 ADD CONSTRAINT chk_年齢 CHECK (年齢 >= 0);
 -- ALTER TABLE completed successfully
 ```
 ---
@@ -742,7 +740,7 @@ SQLの構文を単なる文字列として暗記していると、なぜこれ�
 各制約の適用範囲（スコープ）をSQLの視点から整理すると、その役割分担がより明確になります。
 
 *   **レベル1（行内）: `CHECK`**
-    `CHECK (sale_price >= cost_price)`
+    `CHECK (sale_価格 >= cost_価格)`
     → 1行の中だけで完結して評価できる。
 
 *   **レベル2（テーブル内）: `PRIMARY KEY` / `UNIQUE`**
@@ -754,7 +752,7 @@ SQLの構文を単なる文字列として暗記していると、なぜこれ�
     → `従業員`テーブルの行が、`部署`テーブルの行と正しい関係にあるか評価する必要がある。
 
 *   **レベル4（データベース全体）: `ASSERTION`**
-    `CREATE ASSERTION ... CHECK ( (SELECT SUM(salary) FROM emp) <= (SELECT budget FROM company) )`
+    `CREATE ASSERTION ... CHECK ( (SELECT SUM(給料) FROM emp) <= (SELECT budget FROM company) )`
     → 複数のテーブル全体を集計した結果を評価する必要がある。
 
 この階層構造を理解することで、解決したい課題に対してどの制約が最も適切かを見極める力が養われます。応用情報技術者試験では、このような体系的な理解が応用力として問われます。
@@ -764,7 +762,7 @@ SQLの構文を単なる文字列として暗記していると、なぜこれ�
 全ての整合性問題を単一の制約で解決しようとすることが、初心者の誤りです。実際には、これらの異なるスコープを持つ制約を適切に組み合わせ、層状の防御を構築することで、データベースの堅牢性は最大化されます。それぞれの制約の「守備範囲」を正確に把握することが重要です。
 
 
-# 制約
+## 制約
 
 ---
 
