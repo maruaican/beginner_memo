@@ -14,31 +14,44 @@
 **【解説】**
 **主キー制約（Primary Key Constraint）** は、リレーショナルデータベースにおける最も基本的な整合性制約の一つです。*Primary* は「主要な」「第一の」を意味し、その名の通り、テーブルの「主役」となるキーを定義します。
 
-この制約が課せられた列は、「一意性（Uniqueness）」と「非NULL（Not Null）」という2つのルールを強制されます。
+この制約が課せられた列は、`「一意性（Uniqueness）」`と`「非NULL（Not Null）」`という2つのルールを強制されます。
 
 **【SQL構文例】**
-社員テーブル `employees` を作成し、社員番号 `employee_id` を主キーに設定します。
-
+社員テーブル `従業員` を作成し、社員番号 `従業員ID` を主キーに設定します。
+文法は、`CONSTRAINT 制約名 制約の種類 (対象列)`。
 ```sql
-CREATE TABLE employees (
-    employee_id   INT NOT NULL,
+CREATE TABLE 従業員 (
+    従業員ID   INT NOT NULL,
     employee_name VARCHAR(100),
-    department_id INT,
-    CONSTRAINT pk_employees PRIMARY KEY (employee_id)
+    部署ID INT,
+    CONSTRAINT pk_従業員 PRIMARY KEY (従業員ID)
 );
 ```
-*`CONSTRAINT pk_employees` は制約に名前を付ける構文です。
+**制約名の明示（CONSTRAINT）**
+`CONSTRAINT pk_従業員` は制約に名前を付ける構文です。 pk_従業員という名前を付けることで、後から制約を変更・削除する際に識別しやすくなります。命名規則を整えることで、運用・保守性が向上します。
+なお、pk_従業員は属性（列）としては使用できません。テーブル定義の中で主キー制約に名前を付けているだけです。
+
+`CONSTRAINT`の具体的な使用方法
+| 制約の種類   | 例 `CONSTRAINT 制約名 制約の種類 (対象列)`                   | 意味           |
+|--------------|----------------------------------------------------------------|----------------|
+| PRIMARY KEY  | `CONSTRAINT pk_従業員 PRIMARY KEY (従業員ID)`           | 主キー制約     |
+| FOREIGN KEY  | `CONSTRAINT fk_emp_dept FOREIGN KEY (部署ID)`          | 外部キー制約   |
+| UNIQUE       | `CONSTRAINT uq_email UNIQUE (email)`                          | 一意性制約     |
+| CHECK        | `CONSTRAINT chk_salary CHECK (salary >= 0)`                   | 条件制約       |
+| NOT NULL     | ※列定義内で直接指定<br>`employee_name VARCHAR(100) NOT NULL` | NULL禁止制約   |
+
+
 
 **【制約違反の例】**
-このテーブルに対し、重複する `employee_id` を持つデータを挿入しようとすると、エラーが発生します。
+このテーブルに対し、重複する `従業員ID` を持つデータを挿入しようとすると、エラーが発生します。
 
 ```sql
 -- 1件目の挿入（成功）
-INSERT INTO employees VALUES (101, '田中 太郎', 10);
+INSERT INTO 従業員 VALUES (101, '田中 太郎', 10);
 
 -- 2件目の挿入（主キーが重複するためエラーになる）
-INSERT INTO employees VALUES (101, '鈴木 次郎', 20);
--- ERROR: duplicate key value violates unique constraint "pk_employees"
+INSERT INTO 従業員 VALUES (101, '鈴木 次郎', 20);
+-- ERROR: duplicate key value violates unique constraint "pk_従業員"
 ```
 
 ---
@@ -60,37 +73,39 @@ INSERT INTO employees VALUES (101, '鈴木 次郎', 20);
 **【SQL構文での対応関係】**
 
 ```sql
-CREATE TABLE orders (
-    order_id      INT PRIMARY KEY,
-    customer_id   INT,
+CREATE TABLE 注文 (
+    注文ID      INT PRIMARY KEY,
+    顧客ID   INT,
     order_date    DATE,
 
     -- ↓ここからが制約定義
-    CONSTRAINT fk_orders_customers
-        FOREIGN KEY (customer_id)           -- (1) これが「外部キー制約」
-        REFERENCES customers(customer_id)   -- (2) これが「参照制約」
+    CONSTRAINT fk_注文_顧客
+        FOREIGN KEY (顧客ID)           -- (1) これが「外部キー制約」
+        REFERENCES 顧客(顧客ID)   -- (2) これが「参照制約」
 );
 ```
 
 1.  **外部キー制約 (Foreign Key Constraint):**
-    `FOREIGN KEY (customer_id)` の部分が、「`orders`テーブルの`customer_id`列は、外部のキーを参照する役割を持つ列ですよ」と宣言しています。*Foreign* は「外部の」という意味です。
+    `FOREIGN KEY (顧客ID)` の部分が、「`注文`テーブルの`顧客ID`列は、**外部のキーを参照する役割を持つ列ですよ**」と`宣言`しています。*Foreign* は「外部の」という意味です。
 
 2.  **参照制約 (Referential Constraint):**
-    `REFERENCES customers(customer_id)` の部分が、「その`customer_id`列の値は、`customers`テーブルの`customer_id`列に存在する値でなければなりません」という具体的なルールを定義しています。*Referential* は「参照の」という意味です。
+    `REFERENCES 顧客(顧客ID)` の部分が、「その`顧客ID`列の値は、`顧客`テーブルの`顧客ID`列に存在する値でなければなりません」(**外部キーの値が、参照先テーブルの指定された列に存在していなければならないというルール**)という具体的な`ルール`を定義しています。*Referential* は「参照の」という意味です。
 
 これら2つを組み合わせることで、初めてテーブル間の関係性の整合性が保証されます。
-
+つまり、**外部キー制約（FOREIGN KEY）と参照制約（REFERENCES句）は必ずセット**です。というのも、外部キー制約は「この列の値は、別のテーブルの特定列に存在していなければならない」という参照関係を定義するための制約だからです。
 ---
 **【初心者が勘違いしやすい点】**
-最も多い誤解は「外部キー制約と参照制約は同じものだ」というものです。外部キーはあくまで「列の役割（宣言）」であり、参照制約は「その列が守るべきルール」です。SQL構文が一体化しているため混同しやすいですが、この役割の違いを理論的に理解しているかが問われます。
+最も多い誤解は「外部キー制約と参照制約は同じものだ」というものです。
+外部キーはあくまで「列の役割（`宣言`）」であり、参照制約は「その列が守るべき`ルール`」です。
+SQL構文が一体化しているため混同しやすいですが、この役割の違いを理論的に理解しているかが問われます。
 
 ---
 **【問3】**
-注文テーブル（`orders`）に、顧客テーブル（`customers`）を参照するための `customer_id` 列があります。この `customer_id` 列に、`customers` テーブルに存在しない顧客IDが登録されるのを防ぎたいと考えています。この目的を達成するために、SQLの `CREATE TABLE` 文で用いるべき句は何ですか。
-
+注文テーブル（`注文`）に、顧客テーブル（`顧客`）を参照するための `顧客ID` 列があります。この `顧客ID` 列に、`顧客` テーブルに存在しない顧客IDが登録されるのを防ぎたいと考えています。この目的を達成するために、SQLの `CREATE TABLE` 文で用いるべき句は何ですか。
 ---
+
 **【解答】**
-`FOREIGN KEY (customer_id) REFERENCES customers(customer_id)`
+`FOREIGN KEY (顧客ID) REFERENCES 顧客(顧客ID)`
 
 ---
 **【解説】**
@@ -100,28 +115,28 @@ CREATE TABLE orders (
 
 ```sql
 -- 親テーブル（参照される側）
-CREATE TABLE customers (
-    customer_id   INT PRIMARY KEY,
+CREATE TABLE 顧客 (
+    顧客ID   INT PRIMARY KEY,
     customer_name VARCHAR(100)
 );
 
 -- 子テーブル（参照する側）
-CREATE TABLE orders (
-    order_id      INT PRIMARY KEY,
-    customer_id   INT,
+CREATE TABLE 注文 (
+    注文ID      INT PRIMARY KEY,
+    顧客ID   INT,
     order_date    DATE,
-    CONSTRAINT fk_orders_customers
-        FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
+    CONSTRAINT fk_注文_顧客
+        FOREIGN KEY (顧客ID) REFERENCES 顧客(顧客ID)
 );
 
 -- 正常なデータ挿入
-INSERT INTO customers VALUES (1, '株式会社A');
-INSERT INTO orders VALUES (101, 1, '2023-04-01'); -- 存在するcustomer_id=1なので成功
+INSERT INTO 顧客 VALUES (1, '株式会社A');
+INSERT INTO 注文 VALUES (101, 1, '2023-04-01'); -- 存在する顧客ID=1なので成功
 
 -- 制約違反の例
--- customersテーブルに存在しないcustomer_id=999を挿入しようとするとエラー
-INSERT INTO orders VALUES (102, 999, '2023-04-02');
--- ERROR: insert or update on table "orders" violates foreign key constraint "fk_orders_customers"
+-- 顧客テーブルに存在しない顧客ID=999を挿入しようとするとエラー
+INSERT INTO 注文 VALUES (102, 999, '2023-04-02');
+-- ERROR: insert or update on table "注文" violates foreign key constraint "fk_注文_顧客"
 ```
 このように、データベース管理システム（DBMS）がデータの整合性を自動的に監視し、不正なデータの登録を未然に防いでくれます。
 
@@ -144,10 +159,10 @@ INSERT INTO orders VALUES (102, 999, '2023-04-02');
 **【SQL構文例】**
 
 ```sql
-CREATE TABLE employees (
-    employee_id   INT PRIMARY KEY,
+CREATE TABLE 従業員 (
+    従業員ID   INT PRIMARY KEY,
     age           INT,
-    CONSTRAINT chk_employees_age CHECK (age >= 0 AND age <= 150)
+    CONSTRAINT chk_従業員_age CHECK (age >= 0 AND age <= 150)
 );
 ```
 
@@ -155,15 +170,15 @@ CREATE TABLE employees (
 
 ```sql
 -- 正常なデータ挿入
-INSERT INTO employees VALUES (101, 30); -- 条件を満たすので成功
+INSERT INTO 従業員 VALUES (101, 30); -- 条件を満たすので成功
 
 -- 制約違反のデータ挿入（負の値）
-INSERT INTO employees VALUES (102, -5);
--- ERROR: new row for relation "employees" violates check constraint "chk_employees_age"
+INSERT INTO 従業員 VALUES (102, -5);
+-- ERROR: new row for relation "従業員" violates check constraint "chk_従業員_age"
 
 -- 制約違反のデータ挿入（上限超え）
-INSERT INTO employees VALUES (103, 200);
--- ERROR: new row for relation "employees" violates check constraint "chk_employees_age"
+INSERT INTO 従業員 VALUES (103, 200);
+-- ERROR: new row for relation "従業員" violates check constraint "chk_従業員_age"
 ```
 
 ---
@@ -173,7 +188,7 @@ INSERT INTO employees VALUES (103, 200);
 *   **その列自身の値の範囲や形式**を保証したい → **検査制約（CHECK制約）**
 
 ---
-**【問5】**
+**【問5】**※パフォーマンスが悪くなるのであまり使われない。
 「ある支店の全従業員の給与合計は、その支店の予算を超えてはならない」という、複数のテーブル（例：従業員テーブル、支店テーブル）にまたがる複雑な業務ルールをデータベースレベルで恒久的に保証したい場合、標準SQLで定義されている整合性制約のうち、最も適したものは何ですか。
 
 ---
@@ -185,7 +200,7 @@ INSERT INTO employees VALUES (103, 200);
 **表明（Assertion）** は、データベース全体、あるいは複数のテーブルにまたがる複雑な条件式を定義し、その条件が常に真（TRUE）であることを保証するための強力な整合性制約です。*Assertion* は「主張」「断言」を意味します。
 
 **【SQL構文例（概念）】**
-`employees`テーブルと`branches`テーブルがあると仮定します。
+`従業員`テーブルと`branches`テーブルがあると仮定します。
 
 ```sql
 CREATE ASSERTION salary_check CHECK (
@@ -193,10 +208,10 @@ CREATE ASSERTION salary_check CHECK (
         SELECT b.branch_id
         FROM branches b
         JOIN (
-            SELECT department_id, SUM(salary) AS total_salary
-            FROM employees
-            GROUP BY department_id
-        ) AS emp_salary ON b.branch_id = emp_salary.department_id
+            SELECT 部署ID, SUM(salary) AS total_salary
+            FROM 従業員
+            GROUP BY 部署ID
+        ) AS emp_salary ON b.branch_id = emp_salary.部署ID
         WHERE emp_salary.total_salary > b.budget
     )
 );
@@ -218,33 +233,8 @@ ASSERTIONは非常に強力ですが、パフォーマンスへの影響が大�
 "Foreign"（外部の）と名付けられているのは、その列が自身のテーブル内ではなく、「外部のテーブル」の主キーという「よそ者」の値を参照し、関連付けを行う役割を担っているためです。
 
 ---
-**【解説】**
-テーブルを一つの「国」に例えると分かりやすいです。
-
-**【SQLでの「国」の表現】**
-
-```sql
--- departments国（部署テーブル）
-CREATE TABLE departments (
-    department_id INT PRIMARY KEY, -- 国民ID
-    department_name VARCHAR(50)
-);
-
--- employees国（社員テーブル）
-CREATE TABLE employees (
-    employee_id   INT PRIMARY KEY,     -- 国民ID
-    employee_name VARCHAR(100),
-    department_id INT,               -- ★外国人IDを記録する欄
-
-    -- department_idは、外部の国(departments)の国民IDを参照する
-    FOREIGN KEY (department_id) REFERENCES departments(department_id)
-);
-```
-`employees`テーブルの`department_id`列は、`departments`テーブルという「外部の国」の主キー（国民ID）を記録するためのものです。この「外部との連携」という本質が "Foreign" という言葉に込められています。
-
----
 **【初心者が勘違いしやすい点】**
-外部キーを単に「他のテーブルのIDを入れる列」と機械的に覚えていると、なぜ参照制約が必要なのかという本質を見失いがちです。外部キーは「外部との関係を定義する」という強い意味を持つからこそ、その関係が崩れないように（＝存在しない国民IDを参照しないように）参照制約というルールで保護する必要があるのです。
+外部キーは「外部との関係を定義する」という強い意味を持つからこそ、その関係が崩れないように（＝存在しない国民IDを参照しないように）参照制約というルールで保護する必要があるのです。
 
 ---
 **【問7】**
@@ -271,8 +261,8 @@ CREATE TABLE employees (
 
 ```sql
 -- どんなクライアントから実行しても、このSQLはエラーになる
-UPDATE employees SET age = -1 WHERE employee_id = 101;
--- ERROR: new row for relation "employees" violates check constraint "chk_employees_age"
+UPDATE 従業員 SET age = -1 WHERE 従業員ID = 101;
+-- ERROR: new row for relation "従業員" violates check constraint "chk_従業員_age"
 ```
 これにより、アプリケーションのバグや予期せぬ操作によってデータが矛盾した状態に陥ることを「最後の砦」として防ぎます。
 
@@ -286,30 +276,30 @@ UPDATE employees SET age = -1 WHERE employee_id = 101;
 
 ---
 **【解答】**
-参照先の列は、そのテーブル内で値が一意であることが保証されていなければなりません。通常は、参照先の主キー（PRIMARY KEY）または一意キー制約（UNIQUE Constraint）が設定された列である必要があります。
+参照先の列は、そのテーブル内で値が`一意`であることが保証されていなければなりません。通常は、参照先の`主キー（PRIMARY KEY）`または`一意キー制約（UNIQUE Constraint）`が設定された列である必要があります。
 
 ---
 **【解説】**
 もし参照先の列に重複した値が存在すると、外部キーの値がどの行を指しているのか一意に定まらず、関係が曖昧になってしまいます。DBMSは、このような曖昧な関係の定義を許可しません。
 
 **【SQLでのエラー例】**
-`products`テーブルの`product_code`に一意性制約がない場合、それを参照する外部キーは作成できません。
+`商品`テーブルの`product_code`に**一意性制約がない場合、それを参照する外部キーは作成できません**。
 
 ```sql
-CREATE TABLE products (
+CREATE TABLE 商品 (
     product_code VARCHAR(10), -- PRIMARY KEYもUNIQUE制約もない
     product_name VARCHAR(100)
 );
-INSERT INTO products VALUES ('A-001', '商品X');
-INSERT INTO products VALUES ('A-001', '商品Y'); -- 重複データを許してしまう
+INSERT INTO 商品 VALUES ('A-001', '商品X');
+INSERT INTO 商品 VALUES ('A-001', '商品Y'); -- 重複データを許してしまう
 
-CREATE TABLE order_details (
+CREATE TABLE 注文明細 (
     detail_id INT PRIMARY KEY,
     product_code VARCHAR(10),
     -- ↓この制約を追加しようとするとエラーになる
-    FOREIGN KEY (product_code) REFERENCES products(product_code)
+    FOREIGN KEY (product_code) REFERENCES 商品(product_code)
 );
--- ERROR: there is no unique constraint matching given keys for referenced table "products"
+-- ERROR: there is no unique constraint matching given keys for referenced table "商品"
 ```
 DBMSは「参照先が一意ではないため、どの行を指すか特定できません」と教えてくれます。
 
@@ -325,23 +315,24 @@ DBMSは「参照先が一意ではないため、どの行を指すか特定で�
 **【解答】**
 あるテーブルの外部キーの値が、`NULL`であるか、もしくはその値が参照先テーブルの主キーの値として実際に存在している状態のことです。言い換えれば、「宙に浮いた参照」（存在しないデータを指し示す参照）が一つも存在しない状態を指します。
 
+
 ---
 **【解説】**
 **参照整合性（Referential Integrity）** は、リレーショナルデータベースにおける健全性の核となる概念です。*Integrity* は「整合性」「完全性」を意味します。参照制約は、この整合性を維持するための「番人」です。
 
 **【参照整合性が崩れる操作の防止例】**
-`employees`テーブルが`departments`テーブルを参照しているとします。
+`従業員`テーブルが`部署`テーブルを参照しているとします。
 
 ```sql
 -- 事前データ
-INSERT INTO departments VALUES (10, '営業部');
-INSERT INTO employees VALUES (101, '田中 太郎', 10);
+INSERT INTO 部署 VALUES (10, '営業部');
+INSERT INTO 従業員 VALUES (101, '田中 太郎', 10);
 
 -- 「営業部」には田中さんが所属している
 -- この状態で「営業部」を削除しようとすると…
-DELETE FROM departments WHERE department_id = 10;
--- ERROR: update or delete on table "departments" violates foreign key constraint "fk_employees_departments" on table "employees"
--- DETAIL: Key (department_id)=(10) is still referenced from table "employees".
+DELETE FROM 部署 WHERE 部署ID = 10;
+-- ERROR: update or delete on table "部署" violates foreign key constraint "fk_従業員_部署" on table "従業員"
+-- DETAIL: Key (部署ID)=(10) is still referenced from table "従業員".
 ```
 DBMSは、「社員テーブルからまだ参照されているため、この部署は削除できません」とエラーを返し、田中さんの所属先がなくなる（参照が宙に浮く）事態を防ぎます。
 
@@ -360,32 +351,38 @@ DBMSは、「社員テーブルからまだ参照されているため、この�
 
 ---
 **【解説】**
+```
+🔍 なぜ外部キーにNULLが許容されるのか
+外部キー制約は「指定された値が参照先に存在するか」を検証します。
+しかし、NULLは“値がない”状態なので、そもそも検証対象になりません。
+つまり、NULLは`「参照しない」`という選択肢として扱われます。
+```
 この違いは、それぞれのキーが持つ役割の差から来ています。
 
 **【SQLでの挙動の違い】**
-`employees`テーブルを考えます。
+`従業員`テーブルを考えます。
 
 ```sql
-CREATE TABLE employees (
-    employee_id   INT PRIMARY KEY, -- NOT NULLが暗黙的に適用される
+CREATE TABLE 従業員 (
+    従業員ID   INT PRIMARY KEY, -- NOT NULLが暗黙的に適用される
     employee_name VARCHAR(100),
     manager_id    INT,             -- 上司ID (自分自身を参照する外部キー)
-    FOREIGN KEY (manager_id) REFERENCES employees(employee_id)
+    FOREIGN KEY (manager_id) REFERENCES 従業員(従業員ID)
 );
 
 -- 主キーにNULLを挿入しようとする (エラー)
-INSERT INTO employees (employee_id, employee_name) VALUES (NULL, '名無し');
--- ERROR: null value in column "employee_id" violates not-null constraint
+INSERT INTO 従業員 (従業員ID, employee_name) VALUES (NULL, '名無し');
+-- ERROR: null value in column "従業員ID" violates not-null constraint
 
 -- 外部キーにNULLを挿入する (成功)
 -- 例: 社長など、上司がいない社員
-INSERT INTO employees VALUES (1, '山田 社長', NULL); -- manager_idがNULL
+INSERT INTO 従業員 VALUES (1, '山田 社長', NULL); -- manager_idがNULL
 ```
-社長（`employee_id`=1）は上司がいないため、`manager_id`は`NULL`になります。これは「参照先が存在しない」という正当な業務状態を表現しています。
+社長（`従業員ID`=1）は上司がいないため、`manager_id`は`NULL`になります。これは「参照先が存在しない」という正当な業務状態を表現しています。
 
 ---
 **【初心者が勘違いしやすい点】**
-「キーと名の付くものは全て`NULL`を許さないはずだ」と誤解しがちです。主キーは「存在と一意性」を保証する絶対的な識別子であるのに対し、外部キーはあくまで「他者との関係性」を示すものです。その関係性が必須なのか、任意なのかによって`NULL`を許可するかどうかを設計します。
+「キーと名の付くものは全て`NULL`を許さないはずだ」と誤解しがちです。`主キー`は「存在と一意性」を保証する絶対的な識別子であるのに対し、`外部キー`はあくまで「他者との関係性」を示すものです。その関係性が必須なのか、任意なのかによって`NULL`を許可するかどうかを設計します。
 
 ---
 **【問11】**
@@ -393,17 +390,18 @@ INSERT INTO employees VALUES (1, '山田 社長', NULL); -- manager_idがNULL
 
 ---
 **【解答】**
-参照制約は、通常運用時において、データの「論理的な整合性（矛盾がない状態）」を保つことを目的とします。一方、バックアップや障害復旧は、ハードウェア故障や誤操作といった不測の事態に備え、データベース全体の「物理的なデータそのもの」を過去の健全な時点に復元することを目的とします。
+参照制約は、通常運用時において、データの「論理的な整合性（矛盾がない状態）」を保つことを目的とします。
+一方、バックアップや障害復旧は、ハードウェア故障といった不測の事態に備え、「物理的なデータそのもの」を過去の健全な時点に復元することを目的とします。
 
 ---
 **【解説】**
 この2つは、守るものが全く異なります。
 
 *   **参照制約が防ぐこと:**
-    `INSERT INTO orders VALUES (102, 999, '2023-04-02');` のような、**論理的に矛盾したSQL**の実行を防ぎます。データの「正しさ」を守ります。
+    `INSERT INTO 注文 VALUES (102, 999, '2023-04-02');` のような、**論理的に矛盾したSQL**の実行を防ぎます。データの「正しさ」を守ります。
 
 *   **バックアップ／リカバリが防ぐこと:**
-    `DROP TABLE orders;` という**誤操作**や、**ディスク障害**によるデータファイルの消失からデータを復元します。データの「存在」を守ります。
+    `DROP TABLE 注文;` という**誤操作**や、**ディスク障害**によるデータファイルの消失からデータを復元します。データの「存在」を守ります。
 
 参照制約が完璧でもディスクが壊れればデータは失われますし、毎日バックアップを取っていてもアプリのバグで矛盾したデータが登録されてしまえば、そのバックアップデータも矛盾しています。両者は車の両輪であり、どちらか一方だけではデータの信頼性を担保できません。
 
@@ -417,7 +415,7 @@ INSERT INTO employees VALUES (1, '山田 社長', NULL); -- manager_idがNULL
 
 ---
 **【解答】】**
-最も大きな違いはスコープです。`CHECK` 制約のスコープは「テーブル内の単一の行」に限定されますが、`ASSERTION` のスコープは「データベース全体（複数のテーブルや行）」に及びます。
+最も大きな違いはスコープです。`CHECK` 制約のスコープは「テーブル内の`単一の行`」に限定されますが、`ASSERTION` のスコープは「`データベース全体（複数のテーブルや行）`」に及びます。
 
 ---
 **【解説】】**
@@ -426,21 +424,21 @@ INSERT INTO employees VALUES (1, '山田 社長', NULL); -- manager_idがNULL
 **【SQLで見るスコープの違い】**
 
 *   **`CHECK` 制約（単一行スコープ）:**
-    `products`テーブルで「販売価格(`sale_price`)は仕入れ価格(`cost_price`)以上でなければならない」というルールを定義できます。これは1行の中で完結するチェックです。
+    `商品`テーブルで「販売価格(`sale_price`)は仕入れ価格(`cost_price`)以上でなければならない」というルールを定義できます。これは1行の中で完結するチェックです。
 
     ```sql
-    CREATE TABLE products (
-        product_id INT PRIMARY KEY,
+    CREATE TABLE 商品 (
+        商品ID INT PRIMARY KEY,
         cost_price INT,
         sale_price INT,
         CONSTRAINT chk_price CHECK (sale_price >= cost_price)
     );
     -- これはエラーになる: sale_price < cost_price
-    INSERT INTO products VALUES (1, 1000, 900);
+    INSERT INTO 商品 VALUES (1, 1000, 900);
     ```
 
 *   **`ASSERTION`（複数テーブルスコープ）:**
-    「全商品の`sale_price`の合計が、会社の総売上目標を超えてはならない」というルールは、`CHECK`では書けません。`products`テーブルの全行と、別の`company_goals`テーブルの値を比較する必要があるからです。これは`ASSERTION`のスコープです。
+    「全商品の`sale_price`の合計が、会社の総売上目標を超えてはならない」というルールは、`CHECK`では書けません。`商品`テーブルの全行と、別の`company_goals`テーブルの値を比較する必要があるからです。これは`ASSERTION`のスコープです。
 
 ---
 **【初心者が勘違いしやすい点】**
@@ -460,28 +458,38 @@ INSERT INTO employees VALUES (1, '山田 社長', NULL); -- manager_idがNULL
 複合主キーは、特に中間テーブル（多対多の関連を表現するテーブル）でよく使用されます。
 
 **【SQL構文例：注文明細テーブル】**
-`orders`テーブルと`products`テーブルの多対多関係を表現する`order_details`テーブルです。
+`注文`テーブルと`商品`テーブルの多対多関係を表現する`注文明細`テーブルです。
 
 ```sql
-CREATE TABLE order_details (
-    order_id      INT, -- ordersテーブルへの外部キー
-    product_id    INT, -- productsテーブルへの外部キー
+CREATE TABLE 注文明細 (
+    注文ID      INT, -- 注文テーブルへの外部キー
+    商品ID    INT, -- 商品テーブルへの外部キー
     quantity      INT,
 
-    -- (order_id, product_id) の組み合わせで主キーを定義
-    CONSTRAINT pk_order_details PRIMARY KEY (order_id, product_id),
+    -- (注文ID, 商品ID) の組み合わせで主キーを定義
+    CONSTRAINT pk_注文明細 PRIMARY KEY (注文ID, 商品ID),
 
-    FOREIGN KEY (order_id) REFERENCES orders(order_id),
-    FOREIGN KEY (product_id) REFERENCES products(product_id)
+    FOREIGN KEY (注文ID) REFERENCES 注文(注文ID), --注文表の注文IDを参照する。
+    FOREIGN KEY (商品ID) REFERENCES 商品(商品ID)  -- 商品表の商品IDを参照する。
 );
 
 -- データ挿入例
-INSERT INTO order_details VALUES (101, 1, 5); -- OK
-INSERT INTO order_details VALUES (101, 2, 3); -- OK (order_idは同じだがproduct_idが違う)
-INSERT INTO order_details VALUES (102, 1, 10);-- OK (product_idは同じだがorder_idが違う)
+INSERT INTO 注文明細 VALUES (101, 1, 5); -- OK
+INSERT INTO 注文明細 VALUES (101, 2, 3); -- OK (注文IDは同じだが商品IDが違う)
+INSERT INTO 注文明細 VALUES (102, 1, 10);-- OK (商品IDは同じだが注文IDが違う)
 
 -- これはエラーになる: 主キー(101, 1)が重複
-INSERT INTO order_details VALUES (101, 1, 1);
+INSERT INTO 注文明細 VALUES (101, 1, 1);
+```
+最後の INSERT INTO 注文明細 VALUES (101, 1, 1); がエラーになる理由は、主キー制約の一意性違反です。
+```sql
+CONSTRAINT pk_注文明細 PRIMARY KEY (注文ID, 商品ID)
+```
+この定義により、注文ID と 商品ID の組み合わせで複合主キーとなります。
+つまり、テーブル内でこのペアが重複してはいけないという制約が課されています。
+```sql
+(注文ID = 101, 商品ID = 1, quantity = 5)
+この時点で、主キー (101, 1) が登録済みのところに、主キー (101, 1) を挿入しようとしているため、重複エラーになります。
 ```
 
 ---
@@ -505,15 +513,15 @@ INSERT INTO order_details VALUES (101, 1, 1);
 
 ```sql
 -- 目的：整合性保証
--- ordersテーブルのcustomer_idに外部キー制約を追加
-ALTER TABLE orders ADD CONSTRAINT fk_orders_customers
-    FOREIGN KEY (customer_id) REFERENCES customers(customer_id);
+-- 注文テーブルの顧客IDに外部キー制約を追加
+ALTER TABLE 注文 ADD CONSTRAINT fk_注文_顧客
+    FOREIGN KEY (顧客ID) REFERENCES 顧客(顧客ID);
 
 -- 目的：パフォーマンス向上
--- ordersテーブルのcustomer_id列にインデックスを作成
-CREATE INDEX idx_orders_customer_id ON orders(customer_id);
+-- 注文テーブルの顧客ID列にインデックスを作成
+CREATE INDEX idx_注文_顧客ID ON 注文(顧客ID);
 ```
-インデックスがない状態で、特定の顧客の注文を探すSQL (`SELECT * FROM orders WHERE customer_id = 123;`) を実行すると、テーブルを全行スキャンするため非常に遅くなります。インデックスがあれば、索引を使って高速に対象行を見つけ出せます。
+インデックスがない状態で、特定の顧客の注文を探すSQL (`SELECT * FROM 注文 WHERE 顧客ID = 123;`) を実行すると、テーブルを全行スキャンするため非常に遅くなります。インデックスがあれば、索引を使って高速に対象行を見つけ出せます。
 
 多くのDBMSでは、外部キー制約を作成すると自動的に対応するインデックスが作成されますが、これはあくまでパフォーマンス上の配慮です。両者の概念的な目的の違いを理解しておくことが重要です。
 
@@ -569,29 +577,29 @@ CREATE INDEX idx_orders_customer_id ON orders(customer_id);
 **【SQLでの動作例】**
 
 ```sql
-CREATE TABLE orders (
-    order_id INT PRIMARY KEY
+CREATE TABLE 注文 (
+    注文ID INT PRIMARY KEY
 );
 
-CREATE TABLE order_details (
+CREATE TABLE 注文明細 (
     detail_id INT PRIMARY KEY,
-    order_id  INT,
+    注文ID  INT,
     item_name VARCHAR(50),
-    FOREIGN KEY (order_id) REFERENCES orders(order_id)
+    FOREIGN KEY (注文ID) REFERENCES 注文(注文ID)
         ON DELETE CASCADE  -- ★このオプションを設定
 );
 
 -- データ準備
-INSERT INTO orders VALUES (101);
-INSERT INTO order_details VALUES (1, 101, 'ペン');
-INSERT INTO order_details VALUES (2, 101, 'ノート');
+INSERT INTO 注文 VALUES (101);
+INSERT INTO 注文明細 VALUES (1, 101, 'ペン');
+INSERT INTO 注文明細 VALUES (2, 101, 'ノート');
 
 -- 親テーブルの行を削除する
-DELETE FROM orders WHERE order_id = 101;
+DELETE FROM 注文 WHERE 注文ID = 101;
 
 -- 結果の確認
--- order_detailsテーブルの関連する行も自動的に削除されている
-SELECT * FROM order_details WHERE order_id = 101; -- 結果は0件
+-- 注文明細テーブルの関連する行も自動的に削除されている
+SELECT * FROM 注文明細 WHERE 注文ID = 101; -- 結果は0件
 ```
 ---
 **【初心者が勘違いしやすい点】**
@@ -611,24 +619,24 @@ SELECT * FROM order_details WHERE order_id = 101; -- 結果は0件
 この2つの制約は似て非なるものです。主キーが「主役」なら、UNIQUE制約は「個性的な脇役」です。
 
 **【SQL構文例】**
-社員テーブルで、主キーは `employee_id`、一意キーを `email` と `id_card_number` に設定します。
+社員テーブルで、主キーは `従業員ID`、一意キーを `email` と `id_card_number` に設定します。
 
 ```sql
-CREATE TABLE employees (
-    employee_id      INT PRIMARY KEY, -- 主キー (NULL不可、テーブルに1つ)
+CREATE TABLE 従業員 (
+    従業員ID      INT PRIMARY KEY, -- 主キー (NULL不可、テーブルに1つ)
     employee_name    VARCHAR(100),
     email            VARCHAR(255) UNIQUE, -- 一意キー (NULL可、複数設定可)
     id_card_number   CHAR(10) UNIQUE     -- 一意キー (NULL可、複数設定可)
 );
 
 -- OK: emailがNULL
-INSERT INTO employees VALUES (1, '田中', NULL, 'A001');
+INSERT INTO 従業員 VALUES (1, '田中', NULL, 'A001');
 -- OK: 2人目のemailがNULLでも重複とは見なされない
-INSERT INTO employees VALUES (2, '鈴木', NULL, 'A002');
+INSERT INTO 従業員 VALUES (2, '鈴木', NULL, 'A002');
 
 -- ERROR: emailが重複
-INSERT INTO employees VALUES (3, '佐藤', 'sato@example.com', 'A003');
-INSERT INTO employees VALUES (4, '高橋', 'sato@example.com', 'A004');
+INSERT INTO 従業員 VALUES (3, '佐藤', 'sato@example.com', 'A003');
+INSERT INTO 従業員 VALUES (4, '高橋', 'sato@example.com', 'A004');
 ```
 
 ---
@@ -648,25 +656,25 @@ INSERT INTO employees VALUES (4, '高橋', 'sato@example.com', 'A004');
 制約は、追加するその瞬間からデータベース全体の整合性を保証する責任を負うため、過去のデータも例外なくチェックの対象となります。
 
 **【SQLでの実証】**
-`employees`テーブルに負の年齢データが既に入っているとします。
+`従業員`テーブルに負の年齢データが既に入っているとします。
 
 ```sql
-CREATE TABLE employees (employee_id INT, age INT);
-INSERT INTO employees VALUES (1, 30);
-INSERT INTO employees VALUES (2, -5); -- 違反データ
+CREATE TABLE 従業員 (従業員ID INT, age INT);
+INSERT INTO 従業員 VALUES (1, 30);
+INSERT INTO 従業員 VALUES (2, -5); -- 違反データ
 
 -- この状態でCHECK制約を追加しようとする
-ALTER TABLE employees ADD CONSTRAINT chk_age CHECK (age >= 0);
+ALTER TABLE 従業員 ADD CONSTRAINT chk_age CHECK (age >= 0);
 -- ERROR: check constraint "chk_age" is violated by some row
 ```
 **【正しい手順】**
 
 ```sql
 -- 1. 違反データを修正する
-UPDATE employees SET age = 25 WHERE age < 0;
+UPDATE 従業員 SET age = 25 WHERE age < 0;
 
 -- 2. 再度、制約を追加する（今度は成功する）
-ALTER TABLE employees ADD CONSTRAINT chk_age CHECK (age >= 0);
+ALTER TABLE 従業員 ADD CONSTRAINT chk_age CHECK (age >= 0);
 -- ALTER TABLE completed successfully
 ```
 ---
@@ -688,29 +696,29 @@ SQLの `FOREIGN KEY (列名A) REFERENCES テーブルB(列名B)` という構文
 **【SQLデータで見る集合関係】**
 
 ```sql
--- departmentsテーブル (親)
--- department_id の値の集合: {10, 20, 30}
-CREATE TABLE departments (department_id INT PRIMARY KEY);
-INSERT INTO departments VALUES (10), (20), (30);
+-- 部署テーブル (親)
+-- 部署ID の値の集合: {10, 20, 30}
+CREATE TABLE 部署 (部署ID INT PRIMARY KEY);
+INSERT INTO 部署 VALUES (10), (20), (30);
 
--- employeesテーブル (子)
-CREATE TABLE employees (
+-- 従業員テーブル (子)
+CREATE TABLE 従業員 (
     emp_id INT PRIMARY KEY,
     dept_id INT,
-    FOREIGN KEY (dept_id) REFERENCES departments(department_id)
+    FOREIGN KEY (dept_id) REFERENCES 部署(部署ID)
 );
 ```
-**`employees.dept_id` に挿入可能な値は、`departments.department_id` の集合 `{10, 20, 30}` の要素、または `NULL` のみです。**
+**`従業員.dept_id` に挿入可能な値は、`部署.部署ID` の集合 `{10, 20, 30}` の要素、または `NULL` のみです。**
 
 ```sql
 -- OK: 20は親の集合の要素
-INSERT INTO employees VALUES (101, 20);
+INSERT INTO 従業員 VALUES (101, 20);
 
 -- OK: NULLは許される
-INSERT INTO employees VALUES (102, NULL);
+INSERT INTO 従業員 VALUES (102, NULL);
 
 -- ERROR: 40は親の集合 `{10, 20, 30}` に含まれない
-INSERT INTO employees VALUES (103, 40);
+INSERT INTO 従業員 VALUES (103, 40);
 ```
 このように、参照制約は、子テーブルの値が常に親テーブルの集合の範囲内に収まることを数学的に保証します。
 
@@ -738,12 +746,12 @@ SQLの構文を単なる文字列として暗記していると、なぜこれ�
     → 1行の中だけで完結して評価できる。
 
 *   **レベル2（テーブル内）: `PRIMARY KEY` / `UNIQUE`**
-    `PRIMARY KEY (employee_id)`
-    → 新しい行の`employee_id`が、テーブル内の他の全ての行と重複していないか評価する必要がある。
+    `PRIMARY KEY (従業員ID)`
+    → 新しい行の`従業員ID`が、テーブル内の他の全ての行と重複していないか評価する必要がある。
 
 *   **レベル3（テーブル間）: `FOREIGN KEY`**
-    `FOREIGN KEY (dept_id) REFERENCES departments(dept_id)`
-    → `employees`テーブルの行が、`departments`テーブルの行と正しい関係にあるか評価する必要がある。
+    `FOREIGN KEY (dept_id) REFERENCES 部署(dept_id)`
+    → `従業員`テーブルの行が、`部署`テーブルの行と正しい関係にあるか評価する必要がある。
 
 *   **レベル4（データベース全体）: `ASSERTION`**
     `CREATE ASSERTION ... CHECK ( (SELECT SUM(salary) FROM emp) <= (SELECT budget FROM company) )`
