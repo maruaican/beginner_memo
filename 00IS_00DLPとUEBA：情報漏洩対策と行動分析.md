@@ -395,6 +395,10 @@ DLPとUEBAを別々のベンダーから導入すると、このような高度�
 
 
 
+
+
+
+
 １．全体像（テキスト図）
 
 ```
@@ -519,3 +523,98 @@ DLPはあらかじめ設定されたポリシーに基づいて「静的」に�
 
 ９．要約（3行以内）
 DLPは、データそのものに焦点を当て、機密情報の外部漏えいを防止する技術です。一方、UEBAは、ユーザーや機器の行動を分析し、異常な行動を検知することで内部不正や未知の脅威に対応します。両者は、データ中心か行動中心かの違いで、企業のセキュリティを多角的に強化する役割を担っています。
+
+
+
+
+承知しました！
+「DLP・UEBA・SIEM・EDR」に関連する技術群を、体系的にすべて洗い出して整理します。ここでいう「関連」とは、同じ目的領域（情報漏洩防止・行動分析・統合監視・端末防御）に含まれる周辺技術です。
+
+---
+
+# １　全体像（関連技術マップ）
+
+```
+【情報漏洩対策】
+   └─ DLP
+        ├─ CASB（クラウド利用時のDLP）
+        ├─ DRM/IRM（ファイルへの利用制御）
+        └─ MDM（モバイル端末のデータ制御）
+
+【行動分析】
+   └─ UEBA
+        ├─ SIEM連携（ログの基盤上で動くことが多い）
+        ├─ UBA（User Behavior Analytics：UEBAの前身）
+        └─ AI/機械学習による異常検知
+
+【統合監視】
+   └─ SIEM
+        ├─ SOAR（自動対応：SIEMの発展形）
+        ├─ SOC（Security Operation Center：運用体制）
+        └─ NDR（Network Detection and Response：ネットワーク挙動監視）
+
+【端末防御】
+   └─ EDR
+        ├─ XDR（Extended Detection and Response：EDRの拡張）
+        ├─ MDR（Managed Detection and Response：運用委託型EDR/XDR）
+        └─ 次世代アンチウイルス（NGAV）
+```
+
+---
+
+# ２　関連技術リスト（詳細）
+
+## （１）DLP関連
+
+* **CASB（Cloud Access Security Broker）**
+  クラウド利用の際にDLP機能を適用する仕組み。
+* **DRM/IRM（Digital Rights Management / Information Rights Management）**
+  ファイル自体に「開ける人・使える操作」を制御。
+* **MDM（Mobile Device Management）**
+  スマホ・タブレットにおけるデータ漏洩防止。
+
+## （２）UEBA関連
+
+* **UBA（User Behavior Analytics）**
+  UEBAの前身で、ユーザ行動のみを分析対象。
+* **機械学習ベース異常検知**
+  正常行動の統計モデルを作り、逸脱を検知。
+* **SIEM連携**
+  UEBAは単体よりSIEM上で動作することが多い。
+
+## （３）SIEM関連
+
+* **SOAR（Security Orchestration, Automation and Response）**
+  SIEMで検知したイベントに対し、自動で対応（遮断・通報）。
+* **SOC（Security Operation Center）**
+  SIEMを中心とした運用組織。
+* **NDR（Network Detection and Response）**
+  ネットワーク通信の挙動を分析し、攻撃を検知。
+
+## （４）EDR関連
+
+* **XDR（Extended Detection and Response）**
+  EDR＋NDR＋SIEM的機能を統合。広範囲で検知・対応。
+* **MDR（Managed Detection and Response）**
+  ベンダーや専門業者がEDR/XDRを運用代行。
+* **NGAV（Next Generation Anti-Virus）**
+  挙動分析やAIを用いた従来型アンチウイルスの進化系。
+
+---
+
+# ３　試験的に狙われやすい関連キーワード
+
+* **DLP vs CASB**：「クラウド環境ならCASB」と出題されやすい。
+* **UEBA vs SIEM**：「ログ分析」＝SIEM、「行動異常」＝UEBA。
+* **EDR vs XDR**：「端末限定」＝EDR、「統合範囲拡大」＝XDR。
+* **SIEM vs SOAR**：「検知」＝SIEM、「対応自動化」＝SOAR。
+
+---
+
+# ４　要約（3行以内）
+
+* DLPは「データ保護」、CASB/DRM/MDMが周辺。
+* UEBAは「行動異常検知」、SIEMと連携。
+* EDRは「端末防御」、XDR/MDR/NGAVへ発展。
+
+---
