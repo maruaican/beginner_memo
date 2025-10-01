@@ -5,7 +5,7 @@
 
 
 -- 同じ家族だけど、住所が違うレコードを検索する SQL
-```
+```sql
 SELECT DISTINCT A1.name, A1.address
   FROM Addresses A1 INNER JOIN Addresses A2
     ON A1.family_id = A2.family_id
@@ -125,8 +125,6 @@ SELECT DISTINCT A1.name, A1.address
 このように、期待通りのスッキリした結果が得られます。これが `DISTINCT` が必要な理由です。
 
 
-
-User
 DISTINCT A1.name, A1.address　DINTINCTは２つの属性の重複を除くんだね
 
 はい、その通りです！素晴らしい着眼点ですね。
